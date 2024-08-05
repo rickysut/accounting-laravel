@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Resources;
+namespace App\Filament\App\Resources;
 
 use Filament\Forms;
 use Filament\Tables;
@@ -16,8 +16,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\BelongsToSelect;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Rules\DoubleEntryValidator;
-use App\Filament\Admin\Resources\TransactionResource\Pages;
-use App\Filament\Admin\Resources\TransactionResource\RelationManagers;
+use App\Filament\App\Resources\TransactionResource\Pages;
+use App\Filament\App\Resources\TransactionResource\RelationManagers;
 
 class TransactionResource extends Resource
 {
@@ -37,50 +37,77 @@ class TransactionResource extends Resource
                     ->numeric()
                     ->label('Amount')
                     ->rules(['required', new DoubleEntryValidator()]),
+                BelongsToSelect::make('currency_id')
+                    ->relationship('currency', 'code')
+                    ->label('Currency')
+                    ->required(),
+                TextInput::make('exchange_rate')
+                    ->numeric()
+                    ->label('Exchange Rate')
+                    ->helperText('Leave empty for default currency'),
                 BelongsToSelect::make('debit_account_id')
                     ->relationship('debitAccount', 'name')
                     ->label('Debit Account'),
                 BelongsToSelect::make('credit_account_id')
                     ->relationship('creditAccount', 'name')
                     ->label('Credit Account'),
+                Forms\Components\Toggle::make('reconciled')
+                    ->label('Reconciled'),
+                Forms\Components\Textarea::make('discrepancy_notes')
+                    ->label('Discrepancy Notes'),
             ]);
     }
-
+    
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 TextColumn::make('transaction_date')
                     ->label('Date')
-                    ->searchable()
+                    ->date()
                     ->sortable(),
                 TextColumn::make('transaction_description')
                     ->label('Description')
                     ->searchable()
+                    ->limit(30),
+                TextColumn::make('amount')
+                    ->label('Amount')
+                    ->money('usd')
                     ->sortable(),
-                TextColumn::make('amount')->label('Amount')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('debit_account_id')
+                TextColumn::make('debitAccount.name')
                     ->label('Debit Account')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('credit_account_id')
+                    ->searchable(),
+                TextColumn::make('creditAccount.name')
                     ->label('Credit Account')
+                    ->searchable(),
+                IconColumn::make('reconciled')
+                    ->boolean()
+                    ->label('Reconciled')
+                    ->tooltip('Reconciliation Status'),
+                TextColumn::make('discrepancy_notes')
+                    ->label('Notes')
                     ->searchable()
-                    ->sortable(),
+                    ->limit(20),
             ])
             ->filters([
-                //
+                SelectFilter::make('reconciled')
+                    ->options([
+                        true => 'Reconciled',
+                        false => 'Not Reconciled',
+                    ]),
+                DateRangeFilter::make('transaction_date'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                EditAction::make(),
+                ViewAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    ExportBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('transaction_date', 'desc');
     }
 
     public static function getRelations(): array

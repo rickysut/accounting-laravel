@@ -1,20 +1,22 @@
 <?php
 
-namespace App\Filament\Admin\Resources;
+namespace App\Filament\App\Resources;
 
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Account;
+use App\Models\Category;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\BelongsToSelect;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Filament\Admin\Resources\AccountResource\Pages;
-use App\Filament\Admin\Resources\AccountResource\RelationManagers;
+use App\Filament\App\Resources\AccountResource\Pages;
+use App\Filament\App\Resources\AccountResource\RelationManagers;
 use Faker\Provider\ar_EG\Text;
 use Filament\Tables\Columns\TextColumn;
 
@@ -37,7 +39,10 @@ class AccountResource extends Resource
                 TextInput::make('account_name'),
                 TextInput::make('account_type'),
                 TextInput::make('balance'),
-
+                Select::make('category_id')
+                    ->label('Category')
+                    ->options(Category::all()->pluck('name', 'id'))
+                    ->searchable(),
             ]);
     }
 
@@ -55,7 +60,11 @@ class AccountResource extends Resource
                 TextColumn::make('balance'),
                 BelongsTo::make('user')
                     ->label('User')
-                    ->relationship('user', 'name')
+                    ->relationship('user', 'name'),
+                TextColumn::make('category.name')
+                    ->label('Category')
+                    ->searchable()
+                    ->sortable(),
             ])
             ->filters([
                 //
